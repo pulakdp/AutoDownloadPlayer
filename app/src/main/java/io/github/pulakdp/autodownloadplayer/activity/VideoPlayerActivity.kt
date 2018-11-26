@@ -10,6 +10,8 @@ import android.util.Log
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
+import android.widget.Toast
+import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.ExoPlayerFactory
 import com.google.android.exoplayer2.Player
@@ -39,6 +41,8 @@ import java.io.OutputStream
 class VideoPlayerActivity : AppCompatActivity(),
     StreamingServer.LocalServerCallback, Player.EventListener {
 
+    private val LOG_TAG = VideoPlayerActivity::class.java.simpleName
+
     private val videoApi = VideoDownloadClient.getClient().create(VideoApi::class.java)
 
     private lateinit var exoPlayer: ExoPlayer
@@ -46,6 +50,8 @@ class VideoPlayerActivity : AppCompatActivity(),
 
     private lateinit var videoUrl: String
     private lateinit var videoFile: File
+
+    private var isPlayingLocally: Boolean = false
 
     private val compositeDisposable = CompositeDisposable()
     private var streamingServer: StreamingServer? = null
@@ -132,13 +138,13 @@ class VideoPlayerActivity : AppCompatActivity(),
                 fileSizeDownloaded += read.toLong()
             }
             if (fileSizeDownloaded == fileSize) {
-                Log.d("saveVideo", "Download Complete")
+                Log.d(LOG_TAG, "Download Complete")
                 saveDownloadInformation(videoUrl.substring(videoUrl.lastIndexOf("/") + 1))
             }
             outputStream.flush()
 
         } catch (e: Exception) {
-            Log.d("saveVideo", "Exception occurred: $e")
+            Log.d(LOG_TAG, "Exception occurred: $e")
         } finally {
             inputStream?.close()
             outputStream?.close()
@@ -146,24 +152,36 @@ class VideoPlayerActivity : AppCompatActivity(),
     }
 
     private fun handleError(t: Throwable) {
-        Log.d("saveVideo", "Exception occurred: $t")
+        Toast.makeText(this, "Couldn't fetch video\n${t.message}", Toast.LENGTH_SHORT).show()
     }
 
     override fun onServerStart(streamUrl: String) {
-        Log.d("StreamURL", streamUrl)
+        Log.d(LOG_TAG, "Streaming at $streamUrl")
         runOnUiThread {
             val mediaSource = ExtractorMediaSource.Factory(httpFactory).createMediaSource(Uri.parse(streamUrl))
             exoPlayer.prepare(mediaSource)
             exoPlayer.playWhenReady = true
+            isPlayingLocally = false
+            Toast.makeText(this, "Playing from web", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun playLocally(streamUrl: String) {
         val mediaSource = ExtractorMediaSource.Factory(DefaultDataSourceFactory(this, packageName))
             .setExtractorsFactory(DefaultExtractorsFactory())
-            .createMediaSource(Uri.parse(streamUrl))
+            .createMediaSource(Uri.parse(streamUrl + "sss"))
         exoPlayer.prepare(mediaSource)
         exoPlayer.playWhenReady = true
+        isPlayingLocally = true
+        Toast.makeText(this, "Playing locally", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onPlayerError(error: ExoPlaybackException?) {
+        if (isPlayingLocally && ExoPlaybackException.TYPE_SOURCE == error?.type &&
+            error?.sourceException.message!!.contains("java.io.FileNotFoundException")) {
+            Toast.makeText(this, "Couldn't play locally, playing from web", Toast.LENGTH_SHORT).show()
+            fetchVideo()
+        }
     }
 
     override fun onLoadingChanged(isLoading: Boolean) {
