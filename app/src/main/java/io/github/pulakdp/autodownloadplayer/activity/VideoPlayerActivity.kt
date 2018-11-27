@@ -169,7 +169,7 @@ class VideoPlayerActivity : AppCompatActivity(),
     private fun playLocally(streamUrl: String) {
         val mediaSource = ExtractorMediaSource.Factory(DefaultDataSourceFactory(this, packageName))
             .setExtractorsFactory(DefaultExtractorsFactory())
-            .createMediaSource(Uri.parse(streamUrl + "sss"))
+            .createMediaSource(Uri.parse(streamUrl))
         exoPlayer.prepare(mediaSource)
         exoPlayer.playWhenReady = true
         isPlayingLocally = true

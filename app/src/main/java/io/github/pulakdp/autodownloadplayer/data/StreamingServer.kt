@@ -95,6 +95,7 @@ class StreamingServer(
 
     @Throws(Exception::class)
     private fun putDataOnLocalServer(client: Socket?) {
+        //Constructing header so that exoplayer recognizes that the source is a video
         val lineBreak = "\r\n"
         val headerBuilder = StringBuilder()
         headerBuilder.append("HTTP/1.1 200 OK$lineBreak")
@@ -149,8 +150,7 @@ class StreamingServer(
 
                 DataSync.consumeByte += fileReader
             }
-            Log.d(LOG_TAG, "cbSentThisBatch: $cbSentThisBatch")
-            // If we did nothing this batch, block for a second
+            // If we sent nothing, block for a second
             if (cbSentThisBatch == 0) {
                 Log.d(LOG_TAG, "Blocking until more data appears")
                 Thread.sleep(1000)

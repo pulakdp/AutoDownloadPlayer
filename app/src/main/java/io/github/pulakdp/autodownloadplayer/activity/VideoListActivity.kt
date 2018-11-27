@@ -79,6 +79,7 @@ class VideoListActivity : AppCompatActivity(),
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode != 14 || resultCode != Activity.RESULT_OK) {
+            Toast.makeText(this, "Need storage permission to save video to storage", Toast.LENGTH_SHORT).show()
             return
         }
         openVideoPlayerActivity()
